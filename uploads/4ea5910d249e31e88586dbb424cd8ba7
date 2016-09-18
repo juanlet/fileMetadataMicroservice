@@ -1,0 +1,18 @@
+[00:01] <j4f-shredder> I want to rely as much as possible in google firebase and amazon services
+[00:02] <tx> Welcome to the real world? :P
+[00:02] <j4f-shredder> is that a wise choice?
+[00:02] <j4f-shredder> yeah jajaj I know
+[00:02] <tx> AWS is a good idea.
+[00:02] <tx> but not 100% reliable (as with _anything_)
+[00:02] <tx> I've had instances go down
+[00:02] <tx> so we have backups in other aws regionms
+[00:03] <tx> and everything is automated which is great
+[00:03] <tx> (auto scaling groups, elb's, terraform + cloudfront)
+[00:03] <j4f-shredder> but I need to have knowledge on that as well right?
+[00:03] <j4f-shredder> I started
+[00:03] <tx> y-yes.
+[00:03] <j4f-shredder> watching videos
+[00:03] <j4f-shredder> I guess I'll have to learn the hard way
+[00:03] <tx> Start with the things you can do. Focus on the app now
+[00:04] <tx> Deal with infra later.
+[00:04] <tx> Delegate also.

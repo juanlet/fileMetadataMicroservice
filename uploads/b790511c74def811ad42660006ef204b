@@ -1,0 +1,83 @@
+select fm.user_id,firebase_id,first_name,last_name,is_moderator,profile_pic
+from flocks fl
+inner join flock_members fm on fm.flock_id=fl.flock_id
+inner join user_profile up on up.user_id=fm.user_id
+inner join users u on up.user_id=u.user_id
+where fl.flock_id=1;
+
+
+{"members": [{"user_id": 1, "last_name": "argento", "first_name": "pepe", "firebase_id": "123", "profile_pic": "storage/image.png", "is_moderator": "t"}]}
+
+
+
+[19:51] <j4f-shredder> brutal in which way? I'm really interested in your opinion
+[19:51] <j4f-shredder> I've never done this before
+[19:52] == ytl [~ytl@104.156.97.112] has joined #postgresql
+[19:52] <j4f-shredder> I'm storing it in a relational way, but I'm updating that json just to give a quick response
+[19:52] <j4f-shredder> it's like I have to keep it updated
+[19:52] <heftig> how can i define a custom ordering on a domain? i have a strcmp-like C function to call
+[19:52] == Lordz [~Adium@177.97.184.38] has left #postgresql []
+[19:53] <peerce> text fields over a minimal size get 'toasted' and stored in auxilliary 'toast' tables.    inserting a field out of a json will require reading the whole tuple plus the JSON, mangling the json value, then writing it to a new tuple and new row(s) of the toast tables
+[19:53] == idefine [~idefine@2604:2000:1201:c079:e4cb:98d9:2320:caf1] has joined #postgresql
+[19:54] == Spami [~Spami@unaffiliated/spami] has quit [Ping timeout: 276 seconds]
+[19:54] <j4f-shredder> I just did that cause I needed to do a query from my backend
+[19:54] <peerce> the relational way would be to have a table members, with user_id, etc, and whatever key you're already using, to fetch the members for a given event, you'd do a join.
+[19:55] <j4f-shredder> select  event_field1,event_field2,event_field3,{event members json}
+[19:55] <j4f-shredder> I have the data already related on another table
+[19:55] == ustunozgur [~ustunozgu@95.14.83.76] has quit []
+[19:55] <peerce> whatever.
+[19:55] <j4f-shredder> is there any way I can do that just using a subquery or whatever and building a json from the query'
+[19:56] <j4f-shredder> if you say it's better I prefer to do what you say
+[19:56] <RhodiumToad> sure
+[19:56] <RhodiumToad> the json functions make it very easy to build json from query results
+[19:56] <j4f-shredder> wow
+[19:57] <RhodiumToad> to_json and json_agg are the key functions for that
+[19:57] <j4f-shredder> so it's better to just grab the whole thing in a subquery and build the json in the query rather than storing it on the database?
+[19:57] <RhodiumToad> usually
+[19:58] <j4f-shredder> select event_id,event_name, (select fm.user_id,firebase_id,first_name,last_name,is_moderator,profile_pic from flocks fl inner join flock_members fm on fm.flock_id=fl.flock_id inner join user_profile up on up.user_id=fm.user_id inner join users u on up.user_id=u.user_id where fl.flock_id=1;)
+[19:58] <RhodiumToad> there are times when storing json in the db makes sense, but not when you're just making a copy of relational data you're storing anyway
+[19:58] <j4f-shredder> what's inside the parenthesis are the members
+[19:58] == babak [uid19622@gateway/web/irccloud.com/x-ioygzqaflvhfoafh] has quit [Quit: Connection closed for inactivity]
+[19:59] <j4f-shredder> I need to turn that subquery into a json_array  [{obj1}{obj2}etc]
+[19:59] <RhodiumToad> select json_agg(s) from (select fm.user_id,firebase_id,first_name,last_name,is_moderator,profile_pic from ...) s;
+[19:59] == Spami [~Spami@unaffiliated/spami] has joined #postgresql
+[20:00] <j4f-shredder> so it's nested 2 levels in this case right?
+[20:00] <RhodiumToad> that will give you an array of objects
+[20:00] <RhodiumToad> if you want more nesting then you can do that too
+[20:01] <j4f-shredder> select event_id,event_name, (select json_agg(s) from (select fm.user_id,firebase_id,first_name,last_name,is_moderator,profile_pic from flocks fl inner join flock_members fm on fm.flock_id=fl.flock_id inner join user_profile up on up.user_id=fm.user_id inner join users u on up.user_id=u.user_id where fl.flock_id=1) as s)
+[20:01] <j4f-shredder> on the first level I have the nest
+[20:01] <j4f-shredder> I mean, i have the event data
+[20:02] <j4f-shredder> and on that subselect I have the members
+[20:02] <RhodiumToad> do you want the whole result as a single json blob?
+[20:02] <j4f-shredder> yes
+[20:02] <RhodiumToad> select to_json(s2) from (select ...) s2;
+
+
+[20:11] <RhodiumToad> if you do  select a.id, (select json_agg(s) from (select b.x, b.y from b where b.a_id=a.id)) as json from a;   that'll return the id of each row of a, and for each row a json array containing the values from b
+[20:11] <RhodiumToad> or, you can do:
+[20:12] <RhodiumToad> select a.id, json_agg(json_build_object('x', b.x, 'y', b.y)) from a join b on a.id=b.a_id group by a.id;
+[20:12] <RhodiumToad> which does the same thing but without the subquery
+[20:13] == Spami_ [~Spami@c-73-241-143-109.hsd1.ca.comcast.net] has joined #postgresql
+[20:13] == danecando [~danecando@c-65-96-10-210.hsd1.ma.comcast.net] has joined #postgresql
+[20:13] == NonSecwitter [~NonSecwit@unaffiliated/nonsecwitter] has joined #postgresql
+[20:13] == Spami [~Spami@unaffiliated/spami] has quit [Ping timeout: 264 seconds]
+[20:14] <j4f-shredder> two questions : 1) which is the difference between the first approach and what I put above  2)regarding your second approach, it's a relation from one to many, one event has many members, will that work?....
+[20:15] <RhodiumToad> do you understand the concept of GROUP BY and aggregate functions?
+[20:15] <RhodiumToad> the first method is the same idea as what you had above
+[20:16] == dobber [~dobber@46.238.27.138] has quit [Ping timeout: 258 seconds]
+[20:17] <j4f-shredder> yes, I can see clearer now
+[20:17] == percY- [~percY@195-154-231-182.rev.poneytelecom.eu] has quit [Remote host closed the connection]
+[20:17] <j4f-shredder> is the 2nd approach faster?
+
+
+
+
+raw(
+      "SELECT fl.flock_id,name,description,privacy_mode_description,initial_date,end_date,state_description,"+
+      "creator_user_id,location,category_description,color_hex,thumbnail,created_at,last_updated,deleted_at"+
+      "from flocks fl"+
+      "inner join flock_members fm on fl.flock_id=fm.flock_id"+
+      "inner join colors col "+
+
+
+    );

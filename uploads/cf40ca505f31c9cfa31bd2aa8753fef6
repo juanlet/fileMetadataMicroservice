@@ -1,0 +1,113 @@
+
+up vote
+3
+down vote
+favorite
+2
+	
+
+I'm using Picasso library to download images from URL. This is my first attempt on Picasso
+
+Scenario : I want to download some images from server and store them into a file. I know how to store into file and retrieve. When I ran the below code, I happen to see that I'm getting only last image. It seems like Picasso runs parallelly. I checked it by displaying a toast message. Is there anyway to solve this issue?
+
+Problem : I'm getting only the last url image.
+
+Here's my code
+
+static int  count = 0;
+
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
+
+    for (int i = 0; i < url.length; i++)
+    {
+
+        // url is String array which has 2 urls. 
+        ++count;   // Incrementing the count by 1
+        Picasso.with(this).load(url[i])
+        .into(new Target() {
+
+            @Override
+            public void onPrepareLoad(Drawable arg0) {
+                // TODO Auto-generated method stub
+
+            }
+
+            @Override
+            public void onBitmapLoaded(Bitmap arg0, LoadedFrom arg1) {
+                // TODO Auto-generated method stub
+                arg0 = Bitmap.createScaledBitmap(arg0, 150, 150, true);
+                filePath = saveFile(arg0);   // I'm just calling this function to check how many times `onBitmapLoaded` is called. And it is called only once...!!
+            }
+
+            @Override
+            public void onBitmapFailed(Drawable arg0) {
+                // TODO Auto-generated method stub
+
+            }
+        });
+    }
+}
+
+public String saveFile (Bitmap bm)
+{
+
+   Toast.makeText(getApplicationContext(), ""+count, 100).show(); // Displaying the value of count, which always display as **2**. 
+   return "";
+}
+
+android download picasso
+shareeditflag
+	
+edited Jul 18 '14 at 10:03
+	
+asked Jul 18 '14 at 9:50
+Aniruddha
+3,5131728
+	
+   	
+  	
+	
+Yes it always show count 2 becz when your first image bitmap loaded at time count has reached value 2 in iteration. – Haresh Chhelana Jul 18 '14 at 10:18
+   	
+  	
+	
+You're absolutely right. Thank you @Haresh. So I can save many number of images into files with this code? – Aniruddha Jul 18 '14 at 10:22
+   	
+  	
+	
+i posted ans now you can check and more clear about it. – Haresh Chhelana Jul 18 '14 at 10:25
+   	
+  	
+	
+,have you check out my ans ? – Haresh Chhelana Jul 18 '14 at 10:46
+add a comment
+5 Answers
+active
+oldest
+votes
+up vote
+2
+down vote
+accepted
+	
+
+Try this way,hope this will help you to solve your problem.
+
+static int  count = 0;
+
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
+
+    for (int i = 0; i < url.length; i++)
+    {
+
+        // url is String array which has 2 urls. 
+        Picasso.with(this).load(url[i])
+        .into(new Target() {
+
+            @Override
